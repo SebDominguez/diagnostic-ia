@@ -1,0 +1,11 @@
+pandas
+numpy
+matplotlib
+seaborn
+missingno
+mlflow
+scikit-learn
+jupyter
+ipykernel
+nbconvert
+lightgbm==4.6.0
