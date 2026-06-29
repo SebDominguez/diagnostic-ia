@@ -1,25 +1,26 @@
 services:
   api:
-    build: fastapi_app
+    build: api
     ports:
       - "${FASTAPI_PORT:-8080}:${FASTAPI_PORT:-8080}"
     environment:
-      FASTAPI_PORT: ${FASTAPI_PORT}
-    networks:
-      - app_network
+      FASTAPI_PORT: ${FASTAPI_PORT:-8080}
+      MODEL_OUT_DIR: /app/model  # cible d'écriture du réentraînement (= dossier lu par l'API)
+    volumes:
+      - ./scripts:/scripts:ro      # rend la route /retrain opérationnelle dans le conteneur
+      - ./data:/data:ro            # données d'entraînement lues par train_export.py
+      - ./api/model:/app/model     # modèle persistant (réentraînement visible côté hôte)
 
-  streamlit:
-    build: streamlit_app
+  app:
+    build: app
     ports:
-      - "${STREAMLIT_PORT:-8501}:${STREAMLIT_PORT:-8501}"
+      - "${STREAMLIT_PORT:-8502}:8501"  # 8501 deja occupe sur cette machine -> expose sur l'hote en 8502
     depends_on:
       - api
     environment:
       API_URL: http://api:${FASTAPI_PORT:-8080}/
     volumes:
-      - ./logs:/logs  # Montage du volume pour stocker les logs de loguruuuuuuuu
-    networks:
-      - app_network
+      - ./logs:/app/logs  # logs loguru (Streamlit écrit dans /app/logs/app.log)
 
   prometheus:
     image: prom/prometheus:latest
@@ -31,8 +32,6 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
     depends_on:
       - api
-    networks:
-      - app_network
 
   grafana:
     image: grafana/grafana:latest
@@ -46,8 +45,6 @@ services:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
-    networks:
-      - app_network
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -55,8 +52,6 @@ services:
     restart: unless-stopped
     ports:
       - "${NODE_EXPORTER_PORT:-9100}:${NODE_EXPORTER_PORT:-9100}"
-    networks:
-      - app_network
 
   uptime-kuma:
     image: louislam/uptime-kuma:latest
@@ -65,10 +60,4 @@ services:
     ports:
       - "${UPTIME_KUMA_PORT:-3001}:${UPTIME_KUMA_PORT:-3001}"
     volumes:
-      - ./uptime-kuma-data:/app/data
-    networks:
-      - app_network
-
-networks:
-  app_network:
-    external: true
+      - ./uptime-kuma:/app/data

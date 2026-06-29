@@ -1,0 +1,22 @@
+# duh
+.env
+
+# macOS junk
+.DS_Store
+
+# Loguru junk
+logs/
+
+# Python junk
+__pycache__/
+.venv/
+
+# Uptime Kuma junk (base SQLite runtime du conteneur)
+uptime-kuma/
+
+# MLflow (recréé en exécutant le notebook)
+mlruns/
+mlflow_artifacts/
+
+# Modèle entraîné (régénéré par scripts/train_export.py, en local et en CI)
+api/model/
