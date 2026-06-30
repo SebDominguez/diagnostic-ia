@@ -136,6 +136,22 @@ def main() -> None:
     print(f"\nArtefact sauvegardé : {OUT_PATH}")
     print(f"Taille : {OUT_PATH.stat().st_size / 1024:.0f} Ko")
 
+    # Versioning MLflow : trace le modèle de production dans le Model Registry.
+    # Best-effort : si mlflow est absent (ex. image API), on n'interrompt pas l'export.
+    try:
+        import mlflow
+        mlflow.set_tracking_uri((ROOT / "mlruns").as_uri())
+        mlflow.set_experiment("production")
+        with mlflow.start_run(run_name="train_export"):
+            mlflow.set_tag("scenario", "S2_sans_variables_sensibles")
+            mlflow.set_tag("decision_rule", "cost_minimal")
+            mlflow.log_params(pipe_full.named_steps["clf"].get_params())
+            mlflow.log_metrics(metrics)
+            mlflow.sklearn.log_model(pipe_full, "model", registered_model_name="urgence-model")
+        print("Modèle loggé dans MLflow (registry : urgence-model)")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[warn] log MLflow ignoré : {exc}")
+
 
 if __name__ == "__main__":
     main()
